@@ -27,7 +27,7 @@ export default function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/content');
+        const response = await fetch('/data/content.json'); // <--- Pfad angepasst
         if (response.ok) {
           const json = await response.json();
           setData(json);
@@ -166,12 +166,39 @@ export default function App() {
       setScanState('scanning');
       const formData = new FormData();
       formData.append("file", file);
+      
       try {
-        const response = await fetch('/api/scan', { method: 'POST', body: formData });
-        const result = await response.json();
-        setScanResult(result);
+        // Richtiger Endpunkt für das Backend
+        const response = await fetch('/api/v1/analyze-image', { 
+            method: 'POST', 
+            body: formData 
+        });
+        
+        if (!response.ok) throw new Error("Analyse fehlgeschlagen");
+        
+        const rawData = await response.json();
+        
+        // Backend-Daten (AnalyzeResponse) auf das UI-Format mappen
+        const mappedResult = {
+            is_fake: rawData.prediction.label === "AI-generated",
+            probability: Math.round(rawData.prediction.confidence * 100),
+            reasoning: rawData.explanations.region_text_explanation.length > 0 
+                ? "Modell hat spezifische Auffälligkeiten detektiert." 
+                : "Keine spezifischen Auffälligkeiten in den Gesichtsregionen gefunden.",
+            artifacts: rawData.explanations.region_text_explanation || [],
+            features: {
+                "Modell": rawData.model_used,
+                "Dauer": `${rawData.meta.processing_time_ms} ms`,
+                "Auflösung": `${rawData.meta.image_size.width} x ${rawData.meta.image_size.height}`
+            }
+        };
+
+        setScanResult(mappedResult);
         setScanState('result');
-      } catch (error) { setScanState('idle'); }
+      } catch (error) { 
+        console.error(error);
+        setScanState('idle'); 
+      }
     };
 
     return (

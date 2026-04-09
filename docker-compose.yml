@@ -1,16 +1,23 @@
 version: '3.8'
-
+ 
 services:
   awareness-portal:
+  deepfake-api:
     build: .
-    container_name: awareness-portal
+    container_name: deepfake-api
     restart: always
     ports:
       # Linker Port (Host) geändert auf 8055, um Konflikte zu vermeiden
       - "8090:8000"
     volumes:
-      # Empfehlung: Absoluten Pfad auf dem Host verwenden
-      - /opt/awareness-portal/data:/project/data
+      # Mount your model weights at runtime:
+      #   docker run -v /path/to/weights:/project/backend/weights ...
+      - ./backend/weights:/project/backend/weights
+      - ./data:/project/data
     environment:
-      - APP_ENV=production
-      - HF_API_TOKEN=${HF_API_TOKEN}
+      - DEVICE=cpu
+      - DEFAULT_MODEL=xception
+      - MAX_UPLOAD_MB=10
+      - LOG_LEVEL=INFO
+      - LOG_JSON=true
+      - CORS_ORIGINS=https://pasgri-cloud.de
