@@ -13,3 +13,4 @@ services:
       - /opt/awareness-portal/data:/project/data
     environment:
       - APP_ENV=production
+      - HF_API_TOKEN=${HF_API_TOKEN}

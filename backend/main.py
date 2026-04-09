@@ -47,8 +47,11 @@ async def get_content():
     except FileNotFoundError:
         return {"error": "Daten-Datei nicht gefunden."}
 
-# Hugging Face API Endpunkt für ein Bild-Klassifizierungsmodell
-HF_IMAGE_MODEL_URL = "https://api-inference.huggingface.co/models/dima806/deepfake_vs_real_image_detection"
+# Hugging Face API Endpunkt (Neues Router-System)
+HF_IMAGE_MODEL_URL = "https://router.huggingface.co/hf-inference/models/dima806/deepfake_vs_real_image_detection"
+
+# DEIN HUGGING FACE TOKEN (Hier den hf_... Token eintragen)
+HF_API_TOKEN = os.getenv("HF_API_TOKEN")
 
 @app.post("/api/scan", response_class=JSONResponse)
 async def scan_file(file: UploadFile = File(...)):
@@ -64,8 +67,7 @@ async def scan_file(file: UploadFile = File(...)):
     reasoning = "Analyse konnte nicht durchgeführt werden."
 
     if is_audio:
-        # Für Audio belassen wir vorerst eine Heuristik, da Audio-Deepfake-Modelle sehr formatabhängig sind.
-        # Deterministische Prüfung anhand der Dateigröße (gleiche Datei = gleiches Ergebnis)
+        # Für Audio belassen wir vorerst eine Heuristik
         is_fake = len(file_bytes) % 2 == 0 
         probability = 88 if is_fake else 12
         artifacts = ["Unnatürliche Frequenzspitzen im Audio-Spektrum"] if is_fake else ["Natürliches Rauschprofil"]
@@ -74,8 +76,13 @@ async def scan_file(file: UploadFile = File(...)):
         # ECHTE KI-ANALYSE FÜR BILDER
         try:
             async with httpx.AsyncClient() as client:
+                headers = {
+                    "Authorization": f"Bearer {HF_API_TOKEN}",
+                    "Content-Type": "application/octet-stream"
+                }
                 response = await client.post(
                     HF_IMAGE_MODEL_URL, 
+                    headers=headers,
                     content=file_bytes,
                     timeout=20.0
                 )
