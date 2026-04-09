@@ -22,7 +22,7 @@ WORKDIR /project
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV OPENCV_IO_ENABLE_OPENEXR=0
-
+ENV PYTHONPATH=/project/backend
 # System deps required by OpenCV and MediaPipe
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
