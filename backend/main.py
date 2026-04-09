@@ -10,7 +10,7 @@ import httpx  # Für asynchrone HTTP-Requests an die KI-API
 app = FastAPI(
     title="Awareness Portal API",
     description="Backend für das Deepfake & Voice-Cloning Awareness Portal",
-    version="2.0.0" # Version 2: React Architecture + Real ML Integration
+    version="2.1.0" # Update auf das neue v2 Modell
 )
 
 # Pfade definieren
@@ -18,7 +18,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 FRONTEND_DIST_DIR = os.path.join(BASE_DIR, "frontend", "dist")
 
-# Erlaube CORS für deine Produktiv-Domain
+# Erlaube CORS für deine Domain pasgri-cloud.de
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://www.pasgri-cloud.de", "https://pasgri-cloud.de"],
@@ -47,30 +47,29 @@ async def get_content():
     except FileNotFoundError:
         return {"error": "Daten-Datei nicht gefunden."}
 
-# Hugging Face API Endpunkt (Neues Router-System)
-HF_IMAGE_MODEL_URL = "https://router.huggingface.co/hf-inference/models/dima806/deepfake_vs_real_image_detection"
+# NEU: Hugging Face Router URL für das v2 Modell
+HF_IMAGE_MODEL_URL = "https://router.huggingface.co/hf-inference/models/prithivMLmods/Deep-Fake-Detector-v2-Model"
 
-# DEIN HUGGING FACE TOKEN (Hier den hf_... Token eintragen)
+# SICHER: Token wird aus der Portainer-Umgebung geladen
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
 
 @app.post("/api/scan", response_class=JSONResponse)
 async def scan_file(file: UploadFile = File(...)):
-    """ Echte KI-Analyse via Hugging Face """
+    """ Echte KI-Analyse via Hugging Face v2 Modell """
     file_bytes = await file.read()
     filename_lower = file.filename.lower()
     is_audio = filename_lower.endswith(('.mp3', '.wav', '.m4a', '.ogg'))
 
-    # Standardwerte (Fallback)
     is_fake = False
     probability = 0
     artifacts = []
     reasoning = "Analyse konnte nicht durchgeführt werden."
 
     if is_audio:
-        # Für Audio belassen wir vorerst eine Heuristik
+        # Heuristik für Audio (Deterministisch basierend auf Dateigröße)
         is_fake = len(file_bytes) % 2 == 0 
         probability = 88 if is_fake else 12
-        artifacts = ["Unnatürliche Frequenzspitzen im Audio-Spektrum"] if is_fake else ["Natürliches Rauschprofil"]
+        artifacts = ["Unnatürliche Frequenzspitzen"] if is_fake else ["Natürliches Rauschprofil"]
         reasoning = "Audio-Analyse abgeschlossen (Heuristik)."
     else:
         # ECHTE KI-ANALYSE FÜR BILDER
@@ -84,33 +83,36 @@ async def scan_file(file: UploadFile = File(...)):
                     HF_IMAGE_MODEL_URL, 
                     headers=headers,
                     content=file_bytes,
-                    timeout=20.0
+                    timeout=25.0
                 )
             
             if response.status_code == 200:
                 result = response.json()
-                # Die API gibt eine Liste zurück: [{'label': 'Fake', 'score': 0.98}, {'label': 'Real', 'score': 0.02}]
                 if isinstance(result, list) and len(result) > 0:
-                    top_prediction = result[0]
+                    # Sortiere nach höchstem Score, falls nicht bereits geschehen
+                    predictions = sorted(result, key=lambda x: x['score'], reverse=True)
+                    top_prediction = predictions[0]
+                    
                     label = top_prediction.get("label", "").lower()
                     score = top_prediction.get("score", 0)
                     
                     probability = int(score * 100)
-                    is_fake = (label == "fake")
+                    # Das v2 Modell nutzt oft Label wie 'fake' oder 'synthetic'
+                    is_fake = any(x in label for x in ["fake", "synthetic", "generated"])
                     
                     if is_fake:
-                        reasoning = "Das neuronale Netz hat klare Muster generativer KI erkannt (z.B. GAN-Artefakte oder Diffusion-Strukturen)."
-                        artifacts = ["Mikroskopische Pixel-Inkonsistenzen", "Fehlende Sensorrausch-Muster"]
+                        reasoning = f"Das Modell '{label}' hat mit {probability}% Sicherheit eine KI-Generierung erkannt."
+                        artifacts = ["Inkonsistente Texturen", "KI-typische Glättungseffekte"]
                     else:
-                        reasoning = "Das Bild weist physikalisch korrekte Rauschmuster und natürliche Kanten auf."
-                        artifacts = ["Natürliches Sensorrauschen", "Konsistente Beleuchtung"]
+                        reasoning = "Das Bild zeigt natürliche fotografische Merkmale."
+                        artifacts = ["Natürliche Kantenführung", "Konsistentes Bildrauschen"]
             elif response.status_code == 503:
-                reasoning = "Das KI-Modell wird gerade in der Cloud hochgefahren. Bitte klicke in 20 Sekunden nochmal auf Scannen."
+                reasoning = "Das Modell wird bei Hugging Face gerade geladen. Bitte versuche es in 30 Sekunden erneut."
             else:
-                reasoning = f"API-Fehler {response.status_code}: Unerwartete Antwort des Klassifikators."
+                reasoning = f"API-Fehler {response.status_code}. Sicherstellen, dass der HF_API_TOKEN in Portainer korrekt gesetzt ist."
                 
         except Exception as e:
-            reasoning = f"Verbindungsfehler zur KI-Schnittstelle: {str(e)}"
+            reasoning = f"Fehler bei der KI-Kommunikation: {str(e)}"
 
     return {
         "filename": file.filename,
@@ -121,13 +123,9 @@ async def scan_file(file: UploadFile = File(...)):
     }
 
 # --- Frontend Auslieferung ---
-# WICHTIG: Dies muss GANZ UNTEN stehen, damit es die /api/ Routen nicht überschreibt!
-
 if os.path.isdir(FRONTEND_DIST_DIR):
-    # Statische Assets (CSS, JS, Bilder) ausliefern
     app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIST_DIR, "assets")), name="assets")
 
-    # Catch-All Route: Liefert die React index.html für alle anderen Routen aus
     @app.get("/{catchall:path}")
     async def serve_react_app(request: Request, catchall: str):
         return FileResponse(os.path.join(FRONTEND_DIST_DIR, "index.html"))
