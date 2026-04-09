@@ -1,21 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- Icons (using inline SVG for simplicity in single file) ---
+// --- Icons ---
 const IconShield = () => <svg className="w-8 h-8 text-sky-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>;
-const IconMenu = () => <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>;
 const IconScanner = () => <svg className="w-4 h-4 mr-1 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>;
-const IconCheck = () => <svg className="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>;
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [data, setData] = useState({ quiz: [], scenarios: [] });
   
-  // State for Quiz
+  // State for Quiz & Scenarios
   const [quizScore, setQuizScore] = useState(0);
   const [quizAnswered, setQuizAnswered] = useState({});
-
-  // State for Scenarios
   const [scenarioAnswered, setScenarioAnswered] = useState({});
 
   // State for Scanner
@@ -23,11 +19,16 @@ export default function App() {
   const [scanResult, setScanResult] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Load Data
+  // States for Image & Heatmap Visualization
+  const [originalImage, setOriginalImage] = useState(null);
+  const [showHeatmap, setShowHeatmap] = useState(true);
+  const [heatmapOpacity, setHeatmapOpacity] = useState(0.7);
+
+  // Load Quiz/Scenario Data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/data/content.json'); // <--- Pfad angepasst
+        const response = await fetch('/data/content.json');
         if (response.ok) {
           const json = await response.json();
           setData(json);
@@ -163,12 +164,15 @@ export default function App() {
     const handleFileSelect = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
+      
+      // Originalbild für die UI speichern
+      setOriginalImage(URL.createObjectURL(file));
       setScanState('scanning');
+      
       const formData = new FormData();
       formData.append("file", file);
       
       try {
-        // Richtiger Endpunkt für das Backend
         const response = await fetch('/api/v1/analyze-image', { 
             method: 'POST', 
             body: formData 
@@ -178,7 +182,6 @@ export default function App() {
         
         const rawData = await response.json();
         
-        // Backend-Daten (AnalyzeResponse) auf das UI-Format mappen
         const mappedResult = {
             is_fake: rawData.prediction.label === "AI-generated",
             probability: Math.round(rawData.prediction.confidence * 100),
@@ -190,13 +193,14 @@ export default function App() {
                 "Modell": rawData.model_used,
                 "Dauer": `${rawData.meta.processing_time_ms} ms`,
                 "Auflösung": `${rawData.meta.image_size.width} x ${rawData.meta.image_size.height}`
-            }
+            },
+            heatmap_base64: rawData.explanations.gradcam?.heatmap_base64
         };
 
         setScanResult(mappedResult);
         setScanState('result');
       } catch (error) { 
-        console.error(error);
+        console.error("Scanner Error:", error);
         setScanState('idle'); 
       }
     };
@@ -242,6 +246,56 @@ export default function App() {
                     </div>
                     <div className="w-full bg-slate-700 rounded-full h-3">
                         <div className={`h-3 rounded-full transition-all duration-1000 ${scanResult.is_fake ? 'bg-rose-500' : 'bg-emerald-500'}`} style={{ width: `${scanResult.probability}%` }}></div>
+                    </div>
+                </div>
+
+                {/* Visuelle KI-Analyse (Bild + Heatmap) */}
+                <div className="mb-8">
+                    <h4 className="text-white font-bold mb-4">Visuelle Analyse (Grad-CAM Heatmap)</h4>
+                    
+                    {/* Bild-Container */}
+                    <div className="relative rounded-lg overflow-hidden border border-slate-700 bg-slate-950 flex justify-center items-center" style={{ minHeight: '300px' }}>
+                        
+                        {/* 1. Ebene: Originalbild */}
+                        {originalImage && (
+                            <img src={originalImage} alt="Original" className="max-w-full max-h-[400px] object-contain" />
+                        )}
+
+                        {/* 2. Ebene: Heatmap Overlay */}
+                        {showHeatmap && scanResult.heatmap_base64 && (
+                            <img
+                                src={`data:image/png;base64,${scanResult.heatmap_base64}`}
+                                alt="KI Heatmap"
+                                className="absolute inset-0 w-full h-full object-contain mix-blend-screen"
+                                style={{ opacity: heatmapOpacity }}
+                            />
+                        )}
+                    </div>
+
+                    {/* Steuerelemente (Toggle & Slider) */}
+                    <div className="mt-4 flex flex-col sm:flex-row items-center justify-between bg-slate-900 p-4 rounded-lg border border-slate-700 gap-4">
+                        <label className="flex items-center space-x-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                checked={showHeatmap} 
+                                onChange={(e) => setShowHeatmap(e.target.checked)} 
+                                className="form-checkbox h-5 w-5 text-sky-500 rounded border-slate-600 bg-slate-800" 
+                            />
+                            <span className="text-slate-300 font-medium">Heatmap anzeigen</span>
+                        </label>
+
+                        {showHeatmap && (
+                            <div className="flex items-center space-x-3 w-full sm:w-1/2">
+                                <span className="text-slate-400 text-sm">Deckkraft:</span>
+                                <input
+                                    type="range"
+                                    min="0" max="1" step="0.05"
+                                    value={heatmapOpacity}
+                                    onChange={(e) => setHeatmapOpacity(parseFloat(e.target.value))}
+                                    className="w-full accent-sky-500"
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -301,7 +355,7 @@ export default function App() {
 
       <footer className="bg-slate-900 border-t border-slate-800 py-8 text-center text-slate-500 text-sm">
         <p>Ein Universitätsprojekt zur Cybersecurity-Awareness.</p>
-        <p className="mt-2">Deployed on <a href="https://www.pasgri-cloud.de" className="text-sky-400 hover:underline">pasgri-cloud.de</a></p>
+        <p className="mt-2">Deployed on <a href="https://svschefflenz.online" className="text-sky-400 hover:underline">svschefflenz.online</a></p>
       </footer>
     </div>
   );
