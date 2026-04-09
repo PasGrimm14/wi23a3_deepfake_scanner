@@ -21,7 +21,7 @@ FRONTEND_DIST_DIR = os.path.join(BASE_DIR, "frontend", "dist")
 # Erlaube CORS (wichtig für die lokale Entwicklung, wenn React auf Port 5173 und FastAPI auf 8000 läuft)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://svschefflenz.online"], # Striktes Limit auf die Produktions-URL
+    allow_origins=["https://pasgri-cloud.de"], # Striktes Limit auf die Produktions-URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

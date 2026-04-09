@@ -364,7 +364,7 @@ export default function App() {
         <div className="bg-emerald-900/20 border border-emerald-500/30 p-4 rounded-lg flex items-start gap-3 mb-8">
             <IconCheck />
             <div>
-                <strong className="text-emerald-400 block text-sm">Datenschutz garantiert auf svschefflenz.online</strong>
+                <strong className="text-emerald-400 block text-sm">Datenschutz garantiert auf pasgri-cloud.de</strong>
                 <p className="text-xs text-emerald-200/70 mt-1">Ihre Datei wird nicht dauerhaft gespeichert. Sie wird lediglich für den Zeitraum der Analyse in den flüchtigen Arbeitsspeicher (RAM) geladen und sofort nach der Prüfung unwiderruflich gelöscht.</p>
             </div>
         </div>
@@ -478,7 +478,7 @@ export default function App() {
 
       <footer className="bg-slate-900 border-t border-slate-800 py-8 text-center text-slate-500 text-sm">
         <p className="font-medium">Ein Universitätsprojekt zur Cybersecurity-Awareness.</p>
-        <p className="mt-2">Deployed on <a href="https://svschefflenz.online" className="text-sky-400 hover:text-sky-300 hover:underline font-medium transition-colors">svschefflenz.online</a></p>
+        <p className="mt-2">Deployed on <a href="https://pasgri-cloud.de" className="text-sky-400 hover:text-sky-300 hover:underline font-medium transition-colors">pasgri-cloud.de</a></p>
       </footer>
     </div>
   );
