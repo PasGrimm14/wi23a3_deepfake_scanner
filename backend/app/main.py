@@ -16,6 +16,7 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
  
 from app.api.error_handlers import (
@@ -92,7 +93,8 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix=prefix)
     app.include_router(models.router, prefix=prefix)
     app.include_router(analyze.router, prefix=prefix)
- 
+    app.mount("/data", StaticFiles(directory="data"), name="data")
+    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="frontend")
     return app
  
  

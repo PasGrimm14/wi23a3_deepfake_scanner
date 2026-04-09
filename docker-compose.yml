@@ -20,4 +20,4 @@ services:
       - MAX_UPLOAD_MB=10
       - LOG_LEVEL=INFO
       - LOG_JSON=true
-      - CORS_ORIGINS=*
+      - CORS_ORIGINS=https://pasgri-cloud.de
