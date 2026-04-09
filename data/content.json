@@ -1,0 +1,72 @@
+{
+    "quiz": [
+        {
+            "id": "q1",
+            "title": "Sprachnachricht vom CEO",
+            "type": "Audio",
+            "description": "Eine WhatsApp-Sprachnachricht Ihres Geschäftsführers: 'Hallo, ich brauche sofort eine Überweisung von 50.000€ an unseren neuen Lieferanten. Es ist extrem dringend, ruf nicht an, bin im Meeting.'",
+            "isReal": false,
+            "explanation": "Fake. Typischer CEO-Fraud via Voice-Cloning. Das Alarmsignal ist der Kontext: Geldforderung, Dringlichkeit und die Aufforderung, NICHT anzurufen (verhindert Verifikation)."
+        },
+        {
+            "id": "q2",
+            "title": "Internes Newsletter-Video",
+            "type": "Video",
+            "description": "Das monatliche Update-Video der HR-Abteilung im Intranet. Die Bildqualität schwankt leicht wegen der Webcam des Sprechers.",
+            "isReal": true,
+            "explanation": "Echt. Schwankende Bildqualität ist normal. Angreifer fälschen in der Regel keine harmlosen Routine-Videos ohne Handlungsaufforderung."
+        },
+        {
+            "id": "q3",
+            "title": "Teams-Call vom IT-Support",
+            "type": "Video/Audio",
+            "description": "Ein Video-Anruf auf Teams. Das Bild friert sofort ein. Die Stimme sagt, es gebe einen Angriff auf Ihr Konto und Sie müssen den 6-stelligen Code vorlesen, der gerade per SMS kam.",
+            "isReal": false,
+            "explanation": "Fake/Scam. Ein eingefrorenes Bild verbirgt oft visuelle Fehler. Die IT wird Sie NIE nach einem MFA-Code fragen."
+        }
+    ],
+    "scenarios": [
+        {
+            "id": "s1",
+            "context": "Sie arbeiten in der Finanzabteilung. Am Freitagnachmittag um 16:30 Uhr ruft der CFO an. Er klingt gehetzt: 'Wir schließen gerade eine hochgeheime Akquisition ab. Überweisen Sie sofort 150.000 EUR. Absolut vertraulich!'",
+            "options": [
+                {
+                    "text": "Ich führe die Überweisung sofort aus, es ist der CFO.",
+                    "risk": "high",
+                    "feedback": "Kritisches Risiko! Hohe Wahrscheinlichkeit für Voice-Cloning (CEO-Fraud). Zeitdruck und Geheimhaltung sind klassische Taktiken."
+                },
+                {
+                    "text": "Ich antworte: 'Ich brauche das schriftlich per E-Mail.'",
+                    "risk": "medium",
+                    "feedback": "Besser, aber nicht ausreichend. Angreifer haben oft auch Zugriff auf die kompromittierte Mailbox des CFO (BEC)."
+                },
+                {
+                    "text": "Ich sage: 'Ich prüfe das und rufe Sie über Ihre bekannte interne Nummer zurück.'",
+                    "risk": "low",
+                    "feedback": "Best Practice! Sie durchbrechen den Zeitdruck und nutzen einen verifizierten Out-of-Band-Kanal für den Rückruf."
+                }
+            ]
+        },
+        {
+            "id": "s2",
+            "context": "Ein neuer Mitarbeiter im IT-Support bittet per Video-Call um administrative Rechte. Das Video wirkt leicht unscharf, und wenn er blinzelt, verschwimmt der Bereich um die Augen.",
+            "options": [
+                {
+                    "text": "Ich gewähre die Rechte, er sieht aus wie auf dem Foto.",
+                    "risk": "high",
+                    "feedback": "Hohes Risiko. Visuelle Artefakte sind ein Indikator für Live-Deepfakes."
+                },
+                {
+                    "text": "Ich bitte ihn, seinen Kopf zu drehen oder eine Hand vor das Gesicht zu halten.",
+                    "risk": "medium",
+                    "feedback": "Guter Ansatz (Manueller Liveness-Check). Aktuelle Deepfakes haben oft Probleme mit Verdeckungen, aber technische Prozesse sind sicherer."
+                },
+                {
+                    "text": "Ich breche ab und fordere ihn auf, den formellen Request-Prozess im IT-Ticket-System zu nutzen.",
+                    "risk": "low",
+                    "feedback": "Best Practice! Ein strikter technischer Autorisierungsprozess (Zero Trust) schlägt jeden Deepfake."
+                }
+            ]
+        }
+    ]
+}

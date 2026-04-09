@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  awareness-portal:
+    build: .
+    container_name: awareness-portal
+    restart: always
+    ports:
+      # Mappt den internen FastAPI Port auf den Host-Port 8000
+      # Dein Nginx für svschefflenz.online leitet den Traffic hierher weiter
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # Mountet den Daten-Ordner, damit du die content.json 
+      # jederzeit bearbeiten kannst, ohne den Container neu zu bauen
+      - ./data:/project/data
+    environment:
+      - APP_ENV=production
