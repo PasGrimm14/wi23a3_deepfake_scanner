@@ -7,7 +7,7 @@ services:
     restart: always
     ports:
       # Linker Port (Host) geändert auf 8055, um Konflikte zu vermeiden
-      - "127.0.0.1:8090:8000"
+      - "8090:8000"
     volumes:
       # Empfehlung: Absoluten Pfad auf dem Host verwenden
       - /opt/awareness-portal/data:/project/data
