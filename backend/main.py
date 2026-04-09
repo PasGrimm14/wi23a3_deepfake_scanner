@@ -55,7 +55,12 @@ async def ask_vqa(file_bytes: bytes, question: str):
             response = await client.post(
                 EXPLAINER_MODEL,
                 headers={"Authorization": f"Bearer {HF_API_TOKEN}"},
-                json={"inputs": {"image": img_b64, "question": question}},
+                json={
+                    "inputs": {
+                        "image": img_b64, 
+                        "text": question  # Geändert von "question" auf "text"
+                    }
+                },
                 timeout=15.0
             )
             if response.status_code == 200:
